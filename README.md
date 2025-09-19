@@ -16,7 +16,7 @@ SehatMind is an intelligent system designed to predict student dropout risk and 
 
 ### User Management
 - **Role-based Access**: Different access levels for teachers, counselors, and administrators
-- **Secure Authentication**: JWT-based authentication system
+- **Secure Authentication**: Session-based authentication system
 - **User Registration**: Easy account creation and management
 
 ### Student Management
@@ -33,15 +33,15 @@ SehatMind is an intelligent system designed to predict student dropout risk and 
 - **PostgreSQL/SQLite**: Database management
 - **scikit-learn**: Machine learning algorithms
 - **pandas**: Data processing
-- **Flask-JWT-Extended**: Authentication
-- **Flask-Mail**: Email notifications
+- **Flask-Session**: Session management
+- **psycopg2**: PostgreSQL adapter
 
 ### Frontend
 - **HTML5/CSS3**: Modern, responsive design
 - **JavaScript (ES6+)**: Interactive functionality
 - **Chart.js**: Data visualization
 - **Font Awesome**: Icons
-- **Animate.css**: Animations
+- **Bootstrap**: UI framework
 
 ### AI/ML
 - **Random Forest Classifier**: Primary prediction model
@@ -54,10 +54,11 @@ SehatMind is an intelligent system designed to predict student dropout risk and 
 - Python 3.8 or higher
 - pip (Python package installer)
 - Git
+- PostgreSQL (optional, SQLite is used by default)
 
 ### Step 1: Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/Akash9872/SheatMind.git
 cd SehatMind
 ```
 
@@ -72,58 +73,36 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### Step 3: Install Backend Dependencies
+### Step 3: Install Dependencies
 ```bash
-cd backend
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# macOS/Linux
-source venv/bin/activate
-
 pip install -r requirements.txt
 ```
 
 ### Step 4: Environment Configuration
-Create a `.env` file in the `backend/` directory:
+Create a `.env` file in the root directory:
 ```env
-# Database Configuration
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sehatmind
+# Database Configuration (PostgreSQL)
+DB_HOST=localhost
+DB_NAME=sehatmind
+DB_USER=postgres
+DB_PASSWORD=your_password
 
 # Security
 SECRET_KEY=your-secret-key-here-change-this-in-production
-JWT_SECRET_KEY=your-jwt-secret-key-here-change-this-in-production
-
-# Email Configuration (Optional)
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-app-password
 ```
 
-### Step 5: Start PostgreSQL
-Make sure PostgreSQL is running on your system with:
-- Database: `sehatmind`
-- Username: `postgres` 
-- Password: `postgres`
-- Port: `5432`
-
-### Step 6: Run the Backend
+### Step 5: Run the Application
 ```bash
 python app.py
 ```
 
 The application will be available at `http://localhost:5000`
 
-Frontend is served by Flask at `/` using `frontend/index.html`.
-
 ## 📊 Usage Guide
 
 ### 1. Initial Setup
 1. Open the application in your web browser
-2. Register a new account (Admin/Teacher/Counselor role)
+2. Register a new account (Teacher/Student role)
 3. Login with your credentials
 
 ### 2. Adding Students
@@ -132,7 +111,7 @@ Frontend is served by Flask at `/` using `frontend/index.html`.
 
 ### 3. Risk Assessment
 - Click "Predict Risk" to run AI analysis on all students
-- View risk levels: High (Red), Medium (Yellow), Low (Green)
+- View risk levels: High (Red), Medium (Yellow), Low (Green), Safe (Blue)
 - Monitor the dashboard for real-time updates
 
 ### 4. Student Management
@@ -149,17 +128,14 @@ Frontend is served by Flask at `/` using `frontend/index.html`.
 
 ```
 SehatMind/
-├── backend/
-│   ├── app.py                 # Flask API + server-rendered frontend
-│   ├── run.py                 # Startup helper
-│   ├── requirements.txt       # Backend dependencies
-│   ├── .env.example           # Example env vars
-│   ├── sample_students.csv    # Sample data
-│   └── instance/
-│       └── sehatmind.db       # SQLite database (auto-created)
-├── frontend/
-│   └── index.html             # Frontend (served by Flask)
-└── README.md                  # Project documentation
+├── app.py                 # Flask application
+├── run.py                 # Startup helper
+├── requirements.txt       # Dependencies
+├── .env.example          # Example environment variables
+├── sample_students.csv   # Sample data
+├── templates/
+│   └── index.html        # Frontend template
+└── README.md             # Project documentation
 ```
 
 ## 🔧 API Endpoints
@@ -167,23 +143,24 @@ SehatMind/
 ### Authentication
 - `POST /api/register` - User registration
 - `POST /api/login` - User login
+- `POST /api/logout` - User logout
 
 ### Student Management
 - `GET /api/students` - Get all students
 - `POST /api/students` - Add new student
 - `PUT /api/students/<id>` - Update student
 - `DELETE /api/students/<id>` - Delete student
+- `GET /api/students/<id>` - Get specific student
 
 ### Risk Assessment
 - `POST /api/predict-risk` - Run risk prediction
 - `GET /api/dashboard/stats` - Get dashboard statistics
 
-### Data Import
-- `POST /api/import-students` - Import students from CSV
-
-### Alerts
-- `GET /api/alerts` - Get active alerts
-- `POST /api/alerts` - Create new alert
+### User Management (Admin only)
+- `GET /api/users` - Get all users
+- `PUT /api/users/<id>` - Update user
+- `DELETE /api/users/<id>` - Delete user
+- `GET /api/admin/teacher-stats` - Get teacher statistics
 
 ## 🧠 AI Model Details
 
@@ -212,9 +189,9 @@ The system analyzes multiple factors to predict dropout risk:
    - Course difficulty
 
 ### Prediction Algorithm
-- **Primary**: Random Forest Classifier with feature scaling
-- **Fallback**: Rule-based heuristic system
-- **Risk Levels**: Low (0-40%), Medium (40-70%), High (70-100%)
+- **Primary**: Percentage-based risk calculation
+- **Risk Levels**: Safe (<20%), Low (20-40%), Medium (40-60%), High (60%+)
+- **Factors**: CGPA, Attendance, Assignment completion
 
 ## 📈 Sample Data Format
 
@@ -258,7 +235,7 @@ STU001,John Doe,john@example.com,9876543210,Computer Science,3,85.0,7.5,8,10,1,6
 
 ## 🔒 Security Features
 
-- **JWT Authentication**: Secure token-based authentication
+- **Session Authentication**: Secure session-based authentication
 - **Role-based Access**: Different permissions for different user types
 - **Data Validation**: Input sanitization and validation
 - **CORS Protection**: Cross-origin resource sharing security
@@ -266,7 +243,6 @@ STU001,John Doe,john@example.com,9876543210,Computer Science,3,85.0,7.5,8,10,1,6
 ## 🚀 Deployment
 
 ### Local Development
-From the `backend/` directory after activating the venv:
 ```bash
 python app.py
 ```
@@ -312,7 +288,7 @@ This project is developed for the Smart India Hackathon 2025. All rights reserve
 
 For technical support or questions:
 - Email: support@sehatmind.com
-- GitHub Issues: [Create an issue](https://github.com/your-repo/issues)
+- GitHub Issues: [Create an issue](https://github.com/Akash9872/SheatMind/issues)
 
 ## 🔮 Future Enhancements
 
@@ -322,8 +298,9 @@ For technical support or questions:
 - **Integration APIs**: Connect with existing student management systems
 - **Advanced Analytics**: Predictive analytics and trend analysis
 - **Counselor Tools**: Advanced intervention planning tools
+- **Parent Portal**: Parent access to student progress
+- **Teacher-Student Assignment**: Automatic teacher assignment system
 
 ---
 
 **Built with ❤️ for Smart India Hackathon 2025**
-
