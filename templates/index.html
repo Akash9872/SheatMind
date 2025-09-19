@@ -1176,6 +1176,12 @@
                                 <label for="profileAssignmentsTotal">Total Assignments</label>
                                 <input type="number" id="profileAssignmentsTotal" name="assignments_total" min="0" required>
                             </div>
+                            <div class="form-group">
+                                <label for="profileTeacherSelect">Select Your Teacher:</label>
+                                <select id="profileTeacherSelect" name="teacher_id" required>
+                                    <option value="">Choose your teacher...</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn">Save Profile</button>
@@ -1264,6 +1270,12 @@
                 <div class="form-group">
                     <label for="assignmentsTotal">Total Assignments</label>
                     <input type="number" id="assignmentsTotal" name="assignments_total" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="teacherSelect">Select Teacher:</label>
+                    <select id="teacherSelect" name="teacher_id">
+                        <option value="">Choose teacher...</option>
+                    </select>
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn">Save</button>
@@ -1438,6 +1450,7 @@
         // Global variables
         let currentUser = null;
         let students = [];
+        let teachers = [];
 
         // DOM elements
         const authSection = document.getElementById('authSection');
@@ -1566,6 +1579,7 @@
             setRoleBasedUI();
             
             await loadStats();
+            await loadTeachers();
             
             // Load role-specific content
             if (currentUser.role === 'admin') {
@@ -1659,6 +1673,50 @@
             }
         }
 
+        async function loadTeachers() {
+            try {
+                const response = await fetch('/api/teachers', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    teachers = await response.json();
+                    console.log('Teachers loaded:', teachers);
+                    populateTeacherSelects();
+                } else {
+                    console.error('Failed to load teachers, status:', response.status);
+                }
+            } catch (error) {
+                console.error('Error loading teachers:', error);
+            }
+        }
+
+        function populateTeacherSelects() {
+            // Populate student profile setup form
+            const profileTeacherSelect = document.getElementById('profileTeacherSelect');
+            if (profileTeacherSelect) {
+                profileTeacherSelect.innerHTML = '<option value="">Choose your teacher...</option>';
+                teachers.forEach(teacher => {
+                    const option = document.createElement('option');
+                    option.value = teacher.id;
+                    option.textContent = teacher.username;
+                    profileTeacherSelect.appendChild(option);
+                });
+            }
+
+            // Populate main student form
+            const teacherSelect = document.getElementById('teacherSelect');
+            if (teacherSelect) {
+                teacherSelect.innerHTML = '<option value="">Choose teacher...</option>';
+                teachers.forEach(teacher => {
+                    const option = document.createElement('option');
+                    option.value = teacher.id;
+                    option.textContent = teacher.username;
+                    teacherSelect.appendChild(option);
+                });
+            }
+        }
+
         async function loadStudents() {
             try {
                 console.log('Loading students...');
@@ -1715,6 +1773,7 @@
                         <div><strong>Semester:</strong> ${student.semester}</div>
                         <div><strong>CGPA:</strong> ${student.cgpa}</div>
                         <div><strong>Attendance:</strong> ${student.attendance_percentage}%</div>
+                        ${student.teacher_name ? `<div><strong>Teacher:</strong> ${student.teacher_name}</div>` : ''}
                     </div>
                     <div class="risk-badge ${student.risk_level || 'unknown'}">${(student.risk_level || 'unknown').toUpperCase()} ${student.risk_percentage || 0}%</div>
                 </div>
@@ -1764,6 +1823,12 @@
                             document.getElementById('cgpa').value = student.cgpa;
                             document.getElementById('assignmentsSubmitted').value = student.assignments_submitted;
                             document.getElementById('assignmentsTotal').value = student.assignments_total;
+                            
+                            // Set teacher selection
+                            const teacherSelect = document.getElementById('teacherSelect');
+                            if (teacherSelect && student.teacher_id) {
+                                teacherSelect.value = student.teacher_id;
+                            }
                             document.getElementById('modalTitle').textContent = 'Edit Student';
                             
                             console.log('Form populated with:', {
@@ -2312,6 +2377,7 @@
                         <div><strong>Semester:</strong> ${student.semester}</div>
                         <div><strong>CGPA:</strong> ${student.cgpa}</div>
                         <div><strong>Attendance:</strong> ${student.attendance_percentage}%</div>
+                        ${student.teacher_name ? `<div><strong>Teacher:</strong> ${student.teacher_name}</div>` : ''}
                     </div>
                     <div class="risk-badge ${student.risk_level || 'unknown'}">${(student.risk_level || 'unknown').toUpperCase()} ${student.risk_percentage || 0}%</div>
                 </div>
@@ -2347,6 +2413,7 @@
                         <div><strong>Semester:</strong> ${student.semester}</div>
                         <div><strong>CGPA:</strong> ${student.cgpa}</div>
                         <div><strong>Attendance:</strong> ${student.attendance_percentage}%</div>
+                        ${student.teacher_name ? `<div><strong>Teacher:</strong> ${student.teacher_name}</div>` : ''}
                     </div>
                     <div class="risk-badge ${student.risk_level || 'unknown'}">${(student.risk_level || 'unknown').toUpperCase()} ${student.risk_percentage || 0}%</div>
                 </div>

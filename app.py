@@ -119,6 +119,26 @@ def init_database():
             conn.rollback()
             logger.info(f"Risk_level column already exists or error adding it: {e}")
         
+        # Add teacher_id column if it doesn't exist (migration)
+        try:
+            cur.execute("ALTER TABLE students ADD COLUMN teacher_id INTEGER REFERENCES users(id)")
+            conn.commit()
+            logger.info("Added teacher_id column to students table")
+        except Exception as e:
+            # Column might already exist, rollback and continue
+            conn.rollback()
+            logger.info(f"Teacher_id column already exists or error adding it: {e}")
+        
+        # Add teacher_name column if it doesn't exist (migration)
+        try:
+            cur.execute("ALTER TABLE students ADD COLUMN teacher_name VARCHAR(100)")
+            conn.commit()
+            logger.info("Added teacher_name column to students table")
+        except Exception as e:
+            # Column might already exist, rollback and continue
+            conn.rollback()
+            logger.info(f"Teacher_name column already exists or error adding it: {e}")
+        
         # Insert admin user
         cur.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
         admin_exists = cur.fetchone()[0]
@@ -519,6 +539,8 @@ def get_students():
                 'risk_level': risk_level,
                 'counselor_notes': student[18],
                 'intervention_plan': student[19],
+                'teacher_id': student[22] if len(student) > 22 else None,
+                'teacher_name': student[23] if len(student) > 23 else None,
                 'created_at': student[21].isoformat() if student[21] and hasattr(student[21], 'isoformat') else str(student[21]) if student[21] else None
             })
         
@@ -589,7 +611,9 @@ def get_student(student_id):
             'risk_level': risk_level,
             'counselor_notes': student[18],
             'intervention_plan': student[19],
-            'owner_user_id': student[20]
+            'owner_user_id': student[20],
+            'teacher_id': student[22] if len(student) > 22 else None,
+            'teacher_name': student[23] if len(student) > 23 else None
         }
         
         conn.close()
@@ -651,16 +675,25 @@ def add_student():
         risk_score = risk_percentage / 100  # Convert to 0-1 scale for compatibility
         risk_level = get_risk_level_from_percentage(risk_percentage)
         
+        # Get teacher information if provided
+        teacher_id = data.get('teacher_id')
+        teacher_name = None
+        if teacher_id:
+            cur.execute("SELECT username FROM users WHERE id = %s AND role = 'teacher'", (teacher_id,))
+            teacher = cur.fetchone()
+            if teacher:
+                teacher_name = teacher[0]
+        
         cur.execute("""
             INSERT INTO students (student_id, name, email, phone, course, semester,
                                 attendance_percentage, cgpa, assignments_submitted,
                                 assignments_total, dropout_risk_score, risk_percentage, risk_level,
-                                owner_user_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                owner_user_id, teacher_id, teacher_name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (data.get('student_id'), student_name, student_email, data.get('phone'),
               data.get('course'), semester, attendance_percentage, cgpa,
               assignments_submitted, assignments_total, risk_score, risk_percentage, risk_level,
-              current_user_id))
+              current_user_id, teacher_id, teacher_name))
         
         conn.commit()
         cur.close()
@@ -718,18 +751,27 @@ def update_student(student_id):
         risk_score = risk_percentage / 100  # Convert to 0-1 scale for compatibility
         risk_level = get_risk_level_from_percentage(risk_percentage)
         
+        # Get teacher information if provided
+        teacher_id = data.get('teacher_id')
+        teacher_name = None
+        if teacher_id:
+            cur.execute("SELECT username FROM users WHERE id = %s AND role = 'teacher'", (teacher_id,))
+            teacher = cur.fetchone()
+            if teacher:
+                teacher_name = teacher[0]
+        
         # Update student
         cur.execute("""
             UPDATE students SET 
                 name = %s, email = %s, phone = %s, course = %s, semester = %s,
                 attendance_percentage = %s, cgpa = %s, assignments_submitted = %s,
                 assignments_total = %s, dropout_risk_score = %s, risk_percentage = %s, risk_level = %s,
-                last_updated = CURRENT_TIMESTAMP
+                teacher_id = %s, teacher_name = %s, last_updated = CURRENT_TIMESTAMP
             WHERE id = %s
         """, (data.get('name'), data.get('email'), data.get('phone'), 
               data.get('course'), semester, attendance_percentage, cgpa,
               assignments_submitted, assignments_total, risk_score, risk_percentage, risk_level,
-              student_id))
+              teacher_id, teacher_name, student_id))
         
         conn.commit()
         cur.close()
@@ -877,6 +919,37 @@ def delete_user(user_id):
     except Exception as e:
         logger.error(f"Delete user error: {e}")
         return jsonify({'error': 'Failed to delete user'}), 500
+
+@app.route('/api/teachers', methods=['GET'])
+def get_teachers():
+    """Get all available teachers for student assignment"""
+    auth_error = require_login()
+    if auth_error:
+        return auth_error
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id, username, email FROM users WHERE role = 'teacher' ORDER BY username")
+        teachers = cur.fetchall()
+        
+        teachers_list = []
+        for teacher in teachers:
+            teachers_list.append({
+                'id': teacher[0],
+                'username': teacher[1],
+                'email': teacher[2]
+            })
+        
+        conn.close()
+        return jsonify(teachers_list)
+        
+    except Exception as e:
+        logger.error(f"Get teachers error: {e}")
+        return jsonify({'error': 'Failed to fetch teachers'}), 500
 
 @app.route('/api/admin/teacher-stats', methods=['GET'])
 def get_teacher_stats():
