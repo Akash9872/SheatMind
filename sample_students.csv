@@ -1,0 +1,12 @@
+student_id,name,email,phone,course,semester,attendance_percentage,cgpa,assignments_submitted,assignments_total,exam_attempts,family_income,mental_health_score
+STU001,John Doe,john@example.com,9876543210,Computer Science,3,85.0,7.5,8,10,1,60000,6.0
+STU002,Jane Smith,jane@example.com,9876543211,Engineering,2,45.0,4.2,3,10,3,35000,3.0
+STU003,Mike Johnson,mike@example.com,9876543212,Business,4,92.0,8.8,12,12,0,80000,8.0
+STU004,Sarah Wilson,sarah@example.com,9876543213,Medicine,5,78.0,6.2,7,9,2,45000,5.5
+STU005,David Brown,david@example.com,9876543214,Computer Science,2,35.0,3.8,2,8,4,25000,2.5
+STU006,Emily Davis,emily@example.com,9876543215,Engineering,3,88.0,7.9,9,10,1,70000,7.0
+STU007,James Miller,james@example.com,9876543216,Business,1,65.0,5.5,5,7,2,40000,4.0
+STU008,Lisa Garcia,lisa@example.com,9876543217,Medicine,6,95.0,9.1,11,11,0,90000,9.0
+STU009,Robert Martinez,robert@example.com,9876543218,Computer Science,4,42.0,4.0,3,9,3,30000,3.5
+STU010,Amanda Rodriguez,amanda@example.com,9876543219,Engineering,2,76.0,6.8,6,8,1,55000,6.5
+
