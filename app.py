@@ -326,16 +326,16 @@ def register():
         if data.get('username') == 'admin' or data.get('role') == 'admin':
             return jsonify({'error': 'Cannot create admin via registration'}), 403
     
-    # Check if user already exists
+        # Check if user already exists
         cur.execute("SELECT id FROM users WHERE username = %s", (data['username'],))
         if cur.fetchone():
-        return jsonify({'error': 'Username already exists'}), 400
-    
+            return jsonify({'error': 'Username already exists'}), 400
+        
         cur.execute("SELECT id FROM users WHERE email = %s", (data['email'],))
         if cur.fetchone():
-        return jsonify({'error': 'Email already exists'}), 400
+            return jsonify({'error': 'Email already exists'}), 400
     
-    # Create new user
+        # Create new user
         cur.execute("""
             INSERT INTO users (username, email, password, role)
             VALUES (%s, %s, %s, %s)
