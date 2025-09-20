@@ -417,6 +417,15 @@ def login():
         logger.error(f"Login error: {e}")
         return jsonify({'error': 'Login failed'}), 500
 
+@app.route('/api/current-user', methods=['GET'])
+def get_current_user():
+    """Get current logged-in user information"""
+    auth_error = require_login()
+    if auth_error:
+        return auth_error
+    
+    return jsonify({'user': session['user']})
+
 @app.route('/api/logout', methods=['POST'])
 def logout():
     session.pop('user', None)
@@ -660,6 +669,26 @@ def add_student():
         else:
             student_email = data.get('email')
             student_name = data.get('name')
+            
+            # Auto-generate student_id as password for admin/teacher created students
+            student_id = data.get('student_id')
+            if student_id:
+                # Create a user account for the student with student_id as password
+                try:
+                    cur.execute("""
+                        INSERT INTO users (username, email, password, role)
+                        VALUES (%s, %s, %s, %s)
+                        RETURNING id
+                    """, (student_id, student_email, student_id, 'student'))
+                    
+                    student_user_id = cur.fetchone()[0]
+                    logger.info(f"Created student user account: {student_id}")
+                except Exception as e:
+                    logger.error(f"Error creating student user account: {e}")
+                    # Continue with the original flow if user creation fails
+                    student_user_id = None
+            else:
+                student_user_id = None
         
         # Calculate dropout risk using converted values
         student_data = {
@@ -684,6 +713,9 @@ def add_student():
             if teacher:
                 teacher_name = teacher[0]
         
+        # Use student_user_id if created, otherwise use current_user_id
+        owner_id = student_user_id if student_user_id else current_user_id
+        
         cur.execute("""
             INSERT INTO students (student_id, name, email, phone, course, semester,
                                 attendance_percentage, cgpa, assignments_submitted,
@@ -693,13 +725,21 @@ def add_student():
         """, (data.get('student_id'), student_name, student_email, data.get('phone'),
               data.get('course'), semester, attendance_percentage, cgpa,
               assignments_submitted, assignments_total, risk_score, risk_percentage, risk_level,
-              current_user_id, teacher_id, teacher_name))
+              owner_id, teacher_id, teacher_name))
         
         conn.commit()
         cur.close()
         conn.close()
         
-        return jsonify({'message': 'Student added successfully'}), 201
+        # Return success message with auto-generated password info
+        if student_user_id and current_role != 'student':
+            return jsonify({
+                'message': f'Student added successfully! Student can login with username: {data.get("student_id")} and password: {data.get("student_id")}',
+                'student_id': data.get('student_id'),
+                'password': data.get('student_id')
+            }), 201
+        else:
+            return jsonify({'message': 'Student added successfully'}), 201
         
     except Exception as e:
         logger.error(f"Add student error: {e}")

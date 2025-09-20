@@ -1100,7 +1100,6 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3>My Students</h3>
                     <div class="d-flex gap-2">
-                        <button id="teacherPredictBtn" class="btn">Predict Risk for My Students</button>
                         <button id="teacherImportBtn" class="btn">Import Students</button>
                     </div>
                 </div>
@@ -1571,6 +1570,42 @@
         }
 
         async function loadDashboard() {
+            // First verify the session is still valid and get current user
+            try {
+                const response = await fetch('/api/dashboard/stats', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    console.log('Session expired, redirecting to login');
+                    currentUser = null;
+                    localStorage.removeItem('currentUser');
+                    authSection.classList.add('active');
+                    dashboard.classList.remove('active');
+                    registerSection.classList.remove('active');
+                    return;
+                }
+                
+                // Get current user from server to ensure we have the latest info
+                const userResponse = await fetch('/api/current-user', {
+                    credentials: 'include'
+                });
+                
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    currentUser = userData.user;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                }
+            } catch (error) {
+                console.log('Session verification failed, redirecting to login');
+                currentUser = null;
+                localStorage.removeItem('currentUser');
+                authSection.classList.add('active');
+                dashboard.classList.remove('active');
+                registerSection.classList.remove('active');
+                return;
+            }
+            
             authSection.classList.remove('active');
             registerSection.classList.remove('active');
             dashboard.classList.add('active');
@@ -1628,6 +1663,8 @@
             const dashboardTitle = document.querySelector('.navbar-brand h2');
             if (currentUser.role === 'student') {
                 dashboardTitle.textContent = 'Complete Your Profile';
+            } else if (currentUser.role === 'teacher') {
+                dashboardTitle.textContent = currentUser.username;
             } else {
                 dashboardTitle.textContent = 'SehatMind Dashboard';
             }
@@ -1900,7 +1937,12 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    showAlert(result.message);
+                    // Show success message with auto-generated password info
+                    if (result.student_id && result.password) {
+                        showAlert(`Student added successfully!<br><strong>Login Credentials:</strong><br>Username: ${result.student_id}<br>Password: ${result.password}`, 'success');
+                    } else {
+                        showAlert(result.message);
+                    }
                     closeStudentModal();
                     await loadStudents();
                     await loadStats();
@@ -2835,7 +2877,12 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    showAlert('Profile created successfully!');
+                    // Show success message with auto-generated password info
+                    if (result.student_id && result.password) {
+                        showAlert(`Profile created successfully!<br><strong>Login Credentials:</strong><br>Username: ${result.student_id}<br>Password: ${result.password}`, 'success');
+                    } else {
+                        showAlert('Profile created successfully!');
+                    }
                     await loadStudentProfile(); // Reload to show profile display
                 } else {
                     showAlert(result.error || 'Failed to create profile', 'error');
