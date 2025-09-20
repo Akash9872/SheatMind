@@ -1645,7 +1645,7 @@
                 document.querySelector('.teacher-section').style.display = 'block';
                 document.querySelector('.student-section').style.display = 'none';
                 document.getElementById('studentsGrid').style.display = 'block';
-                await loadStudents();
+                await loadTeacherStudents();
             } else if (currentUser.role === 'student') {
                 // Show student section and hide others
                 document.querySelector('.admin-section').style.display = 'none';
@@ -1785,6 +1785,33 @@
                 }
             } catch (error) {
                 console.error('Error loading students:', error);
+                showAlert('Network error loading students', 'error');
+            }
+        }
+
+        async function loadTeacherStudents() {
+            try {
+                console.log('Loading teacher students...');
+                const response = await fetch('/api/students', {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const allStudents = await response.json();
+                    // Filter students to show only those assigned to current teacher
+                    students = allStudents.filter(student => 
+                        student.teacher_id === currentUser.id || 
+                        student.owner_user_id === currentUser.id
+                    );
+                    console.log('Teacher students loaded:', students);
+                    console.log('Number of teacher students:', students.length);
+                    renderStudents();
+                } else {
+                    console.error('Failed to load teacher students, status:', response.status);
+                    showAlert('Failed to load students', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading teacher students:', error);
                 showAlert('Network error loading students', 'error');
             }
         }
@@ -1964,7 +1991,12 @@
                         showAlert(result.message);
                     }
                     closeStudentModal();
-                    await loadStudents();
+                    // Load students based on user role
+                    if (currentUser.role === 'teacher') {
+                        await loadTeacherStudents();
+                    } else {
+                        await loadStudents();
+                    }
                     await loadStats();
                 } else {
                     showAlert(result.error || 'Operation failed', 'error');
@@ -1989,7 +2021,12 @@
                     if (response.ok) {
                         showAlert(result.message);
                         closeStudentModal();
-                        await loadStudents();
+                        // Load students based on user role
+                        if (currentUser.role === 'teacher') {
+                            await loadTeacherStudents();
+                        } else {
+                            await loadStudents();
+                        }
                         await loadStats();
                     } else {
                         showAlert(result.error || 'Delete failed', 'error');
@@ -2036,7 +2073,12 @@
                     showAlert(result.message);
                     importModal.style.display = 'none';
                     importForm.reset();
-                    await loadStudents();
+                    // Load students based on user role
+                    if (currentUser.role === 'teacher') {
+                        await loadTeacherStudents();
+                    } else {
+                        await loadStudents();
+                    }
                     await loadStats();
                 } else {
                     showAlert(result.error || 'Import failed', 'error');
