@@ -977,6 +977,10 @@
             
             <form id="registerForm">
                 <div class="form-group">
+                    <label for="regName">Full Name</label>
+                    <input type="text" id="regName" name="name" required>
+                </div>
+                <div class="form-group">
                     <label for="regUsername">Username</label>
                     <input type="text" id="regUsername" name="username" required>
                 </div>
@@ -1270,7 +1274,7 @@
                     <label for="assignmentsTotal">Total Assignments</label>
                     <input type="number" id="assignmentsTotal" name="assignments_total" min="0">
                 </div>
-                <div class="form-group">
+                <div class="form-group teacher-selection" style="display: none;">
                     <label for="teacherSelect">Select Teacher:</label>
                     <select id="teacherSelect" name="teacher_id">
                         <option value="">Choose teacher...</option>
@@ -1664,7 +1668,7 @@
             if (currentUser.role === 'student') {
                 dashboardTitle.textContent = 'Complete Your Profile';
             } else if (currentUser.role === 'teacher') {
-                dashboardTitle.textContent = currentUser.username;
+                dashboardTitle.textContent = currentUser.name || currentUser.username;
             } else {
                 dashboardTitle.textContent = 'SehatMind Dashboard';
             }
@@ -1821,6 +1825,14 @@
         async function openStudentModal(studentId = null) {
             console.log('openStudentModal called with studentId:', studentId);
             console.log('studentModal element:', studentModal);
+            
+            // Show/hide teacher selection based on user role
+            const teacherSelection = document.querySelector('.teacher-selection');
+            if (currentUser && currentUser.role === 'teacher') {
+                teacherSelection.style.display = 'none';
+            } else {
+                teacherSelection.style.display = 'block';
+            }
             
             // First, clear the form completely
             document.getElementById('studentForm').reset();

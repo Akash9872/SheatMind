@@ -139,6 +139,16 @@ def init_database():
             conn.rollback()
             logger.info(f"Teacher_name column already exists or error adding it: {e}")
         
+        # Add name column to users table if it doesn't exist (migration)
+        try:
+            cur.execute("ALTER TABLE users ADD COLUMN name VARCHAR(100)")
+            conn.commit()
+            logger.info("Added name column to users table")
+        except Exception as e:
+            # Column might already exist, rollback and continue
+            conn.rollback()
+            logger.info(f"Name column already exists or error adding it: {e}")
+        
         # Insert admin user
         cur.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
         admin_exists = cur.fetchone()[0]
@@ -357,10 +367,10 @@ def register():
     
         # Create new user
         cur.execute("""
-            INSERT INTO users (username, email, password, role)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO users (username, email, password, role, name)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id
-        """, (data['username'], data['email'], data['password'], data.get('role', 'teacher')))
+        """, (data['username'], data['email'], data['password'], data.get('role', 'teacher'), data.get('name', data['username'])))
         
         user_id = cur.fetchone()[0]
         conn.commit()
@@ -391,6 +401,7 @@ def login():
             session['user'] = {
                 'id': 1,
                 'username': 'admin',
+                'name': 'Administrator',
                 'email': 'admin@sehatmind.local',
                 'role': 'admin'
             }
@@ -405,6 +416,7 @@ def login():
             session['user'] = {
                 'id': user[0],
                 'username': user[1],
+                'name': user[5] if len(user) > 5 and user[5] else user[1],  # user[5] is name, fallback to username
                 'email': user[2],
                 'role': user[4]
             }
@@ -676,10 +688,10 @@ def add_student():
                 # Create a user account for the student with student_id as password
                 try:
                     cur.execute("""
-                        INSERT INTO users (username, email, password, role)
-                        VALUES (%s, %s, %s, %s)
+                        INSERT INTO users (username, email, password, role, name)
+                        VALUES (%s, %s, %s, %s, %s)
                         RETURNING id
-                    """, (student_id, student_email, student_id, 'student'))
+                    """, (student_id, student_email, student_id, 'student', student_name))
                     
                     student_user_id = cur.fetchone()[0]
                     logger.info(f"Created student user account: {student_id}")
@@ -707,7 +719,12 @@ def add_student():
         # Get teacher information if provided
         teacher_id = data.get('teacher_id')
         teacher_name = None
-        if teacher_id:
+        
+        # If current user is a teacher, automatically assign them as the teacher
+        if current_role == 'teacher':
+            teacher_id = current_user_id
+            teacher_name = current_username
+        elif teacher_id:
             cur.execute("SELECT username FROM users WHERE id = %s AND role = 'teacher'", (teacher_id,))
             teacher = cur.fetchone()
             if teacher:
