@@ -1665,13 +1665,21 @@
             
             // Update dashboard title based on role
             const dashboardTitle = document.querySelector('.navbar-brand h2');
+            console.log('Setting dashboard title for role:', currentUser.role);
+            console.log('Current user name:', currentUser.name);
+            console.log('Current user username:', currentUser.username);
+            
             if (currentUser.role === 'student') {
                 dashboardTitle.textContent = 'Complete Your Profile';
             } else if (currentUser.role === 'teacher') {
-                dashboardTitle.textContent = currentUser.name || currentUser.username;
+                const teacherName = currentUser.name || currentUser.username;
+                console.log('Setting teacher name to:', teacherName);
+                dashboardTitle.textContent = teacherName;
             } else {
                 dashboardTitle.textContent = 'SehatMind Dashboard';
             }
+            
+            console.log('Final dashboard title:', dashboardTitle.textContent);
             
             // Show/hide role-specific elements
             const adminOnly = document.querySelectorAll('.admin-only');
